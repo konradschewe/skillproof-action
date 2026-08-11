@@ -61,6 +61,7 @@ runs:
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
         AICORE_SERVICE_KEY: ${{ inputs.aicore-service-key }}
         AICORE_RESOURCE_GROUP: ${{ inputs.aicore-resource-group }}
+        npm_config_ignore_scripts: 'false'
         INPUT_SKILLS_DIR: ${{ inputs.skills-dir }}
         INPUT_PROVIDER: ${{ inputs.provider }}
         INPUT_FILTER: ${{ inputs.filter }}
