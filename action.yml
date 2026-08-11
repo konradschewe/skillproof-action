@@ -16,6 +16,12 @@ inputs:
   anthropic-api-key:
     description: 'Anthropic API key (required when provider is anthropic)'
     required: false
+  aicore-service-key:
+    description: 'SAP AI Core service key JSON from BTP (required when provider is aicore)'
+    required: false
+  aicore-resource-group:
+    description: 'SAP AI Core resource group (optional, default: "default")'
+    required: false
   filter:
     description: 'Only evaluate skills whose name contains this substring'
     required: false
@@ -25,9 +31,6 @@ inputs:
   output-file:
     description: 'Write output to this file path'
     required: false
-  skillproof-version:
-    description: 'Version of the skillproof CLI to use (e.g. 1.2.3 or latest)'
-    default: 'latest'
   publish-pages:
     description: >
       Publish an HTML report to GitHub Pages.
@@ -56,13 +59,14 @@ runs:
       shell: bash
       env:
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        AICORE_SERVICE_KEY: ${{ inputs.aicore-service-key }}
+        AICORE_RESOURCE_GROUP: ${{ inputs.aicore-resource-group }}
         INPUT_SKILLS_DIR: ${{ inputs.skills-dir }}
         INPUT_PROVIDER: ${{ inputs.provider }}
         INPUT_FILTER: ${{ inputs.filter }}
         INPUT_OUTPUT_FORMAT: ${{ inputs.output-format }}
         INPUT_OUTPUT_FILE: ${{ inputs.output-file }}
         INPUT_PUBLISH_PAGES: ${{ inputs.publish-pages }}
-        INPUT_VERSION: ${{ inputs.skillproof-version }}
       run: |
         ARGS=(--skills-dir "$INPUT_SKILLS_DIR")
         ARGS+=(--provider "$INPUT_PROVIDER")
@@ -86,7 +90,7 @@ runs:
           ARGS+=(--filter "$INPUT_FILTER")
         fi
 
-        npx --yes "skillproof@$INPUT_VERSION" "${ARGS[@]}"
+        npx --yes "skillproof@1" "${ARGS[@]}"
 
     - name: Prepare GitHub Pages directory
       if: ${{ inputs.publish-pages == 'true' }}
