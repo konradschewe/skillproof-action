@@ -1,0 +1,107 @@
+name: 'Skillproof'
+description: 'Verify that Claude agent skills are correctly adopted in your codebase'
+author: 'konradschewe'
+
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  skills-dir:
+    description: 'Path to the directory containing SKILL.md files'
+    required: true
+  provider:
+    description: 'LLM provider: anthropic or aicore'
+    default: 'anthropic'
+  anthropic-api-key:
+    description: 'Anthropic API key (required when provider is anthropic)'
+    required: false
+  filter:
+    description: 'Only evaluate skills whose name contains this substring'
+    required: false
+  output-format:
+    description: 'Output format: markdown, json, github-summary, or html'
+    default: 'github-summary'
+  output-file:
+    description: 'Write output to this file path'
+    required: false
+  skillproof-version:
+    description: 'Version of the skillproof CLI to use (e.g. 1.2.3 or latest)'
+    default: 'latest'
+  publish-pages:
+    description: >
+      Publish an HTML report to GitHub Pages.
+      Requires contents: write permission in the calling workflow and GitHub Pages enabled
+      (Settings → Pages → Source: Deploy from branch gh-pages).
+    default: 'false'
+  pages-destination-dir:
+    description: 'Subdirectory on GitHub Pages to publish the report to'
+    default: 'skillproof'
+
+outputs:
+  report-path:
+    description: 'Path to the generated report file (set when output-file is given or publish-pages is true)'
+    value: ${{ steps.run.outputs.report-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Run Skillproof
+      id: run
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        INPUT_SKILLS_DIR: ${{ inputs.skills-dir }}
+        INPUT_PROVIDER: ${{ inputs.provider }}
+        INPUT_FILTER: ${{ inputs.filter }}
+        INPUT_OUTPUT_FORMAT: ${{ inputs.output-format }}
+        INPUT_OUTPUT_FILE: ${{ inputs.output-file }}
+        INPUT_PUBLISH_PAGES: ${{ inputs.publish-pages }}
+        INPUT_VERSION: ${{ inputs.skillproof-version }}
+      run: |
+        ARGS=(--skills-dir "$INPUT_SKILLS_DIR")
+        ARGS+=(--provider "$INPUT_PROVIDER")
+
+        OUTPUT_FORMAT="$INPUT_OUTPUT_FORMAT"
+        OUTPUT_FILE="$INPUT_OUTPUT_FILE"
+
+        if [ "$INPUT_PUBLISH_PAGES" = "true" ] && [ -z "$OUTPUT_FILE" ]; then
+          OUTPUT_FORMAT="html"
+          OUTPUT_FILE="skillproof-report.html"
+        fi
+
+        ARGS+=(--output-format "$OUTPUT_FORMAT")
+
+        if [ -n "$OUTPUT_FILE" ]; then
+          ARGS+=(--output-file "$OUTPUT_FILE")
+          echo "report-path=$OUTPUT_FILE" >> "$GITHUB_OUTPUT"
+        fi
+
+        if [ -n "$INPUT_FILTER" ]; then
+          ARGS+=(--filter "$INPUT_FILTER")
+        fi
+
+        npx --yes "skillproof@$INPUT_VERSION" "${ARGS[@]}"
+
+    - name: Prepare GitHub Pages directory
+      if: ${{ inputs.publish-pages == 'true' }}
+      shell: bash
+      env:
+        REPORT_PATH: ${{ steps.run.outputs.report-path }}
+      run: |
+        mkdir -p _skillproof_pages_tmp
+        cp "$REPORT_PATH" _skillproof_pages_tmp/skillproof-report.html
+
+    - name: Publish to GitHub Pages
+      if: ${{ inputs.publish-pages == 'true' }}
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ github.token }}
+        publish_dir: '_skillproof_pages_tmp'
+        destination_dir: ${{ inputs.pages-destination-dir }}
+        keep_files: true
