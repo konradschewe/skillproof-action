@@ -90,7 +90,7 @@ runs:
           ARGS+=(--filter "$INPUT_FILTER")
         fi
 
-        npx --yes "skillproof@1" "${ARGS[@]}"
+        npx --yes "github:konradschewe/skillproof" "${ARGS[@]}"
 
     - name: Prepare GitHub Pages directory
       if: ${{ inputs.publish-pages == 'true' }}
