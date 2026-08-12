@@ -25,6 +25,9 @@ inputs:
   filter:
     description: 'Only evaluate skills whose name contains this substring'
     required: false
+  verbose:
+    description: 'Stream agent thinking and tool calls to stderr'
+    default: 'false'
   output-format:
     description: 'Output format: markdown, json, github-summary, or html'
     default: 'github-summary'
@@ -68,6 +71,7 @@ runs:
         INPUT_OUTPUT_FORMAT: ${{ inputs.output-format }}
         INPUT_OUTPUT_FILE: ${{ inputs.output-file }}
         INPUT_PUBLISH_PAGES: ${{ inputs.publish-pages }}
+        INPUT_VERBOSE: ${{ inputs.verbose }}
       run: |
         ARGS=(--skills-dir "$INPUT_SKILLS_DIR")
         ARGS+=(--provider "$INPUT_PROVIDER")
@@ -89,6 +93,10 @@ runs:
 
         if [ -n "$INPUT_FILTER" ]; then
           ARGS+=(--filter "$INPUT_FILTER")
+        fi
+
+        if [ "$INPUT_VERBOSE" = "true" ]; then
+          ARGS+=(--verbose)
         fi
 
         npx --yes "github:konradschewe/skillproof" "${ARGS[@]}"
