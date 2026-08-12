@@ -25,6 +25,9 @@ inputs:
   filter:
     description: 'Only evaluate skills whose name contains this substring'
     required: false
+  system-prompt:
+    description: 'Additional system prompt context for the evaluator agent (e.g. to describe the nature of the repository)'
+    required: false
   verbose:
     description: 'Stream agent thinking and tool calls to stderr'
     default: 'false'
@@ -68,6 +71,7 @@ runs:
         INPUT_SKILLS_DIR: ${{ inputs.skills-dir }}
         INPUT_PROVIDER: ${{ inputs.provider }}
         INPUT_FILTER: ${{ inputs.filter }}
+        INPUT_SYSTEM_PROMPT: ${{ inputs.system-prompt }}
         INPUT_OUTPUT_FORMAT: ${{ inputs.output-format }}
         INPUT_OUTPUT_FILE: ${{ inputs.output-file }}
         INPUT_PUBLISH_PAGES: ${{ inputs.publish-pages }}
@@ -93,6 +97,10 @@ runs:
 
         if [ -n "$INPUT_FILTER" ]; then
           ARGS+=(--filter "$INPUT_FILTER")
+        fi
+
+        if [ -n "$INPUT_SYSTEM_PROMPT" ]; then
+          ARGS+=(--system-prompt "$INPUT_SYSTEM_PROMPT")
         fi
 
         if [ "$INPUT_VERBOSE" = "true" ]; then
