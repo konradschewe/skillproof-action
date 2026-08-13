@@ -31,6 +31,12 @@ inputs:
   verbose:
     description: 'Stream agent thinking and tool calls to stderr'
     default: 'false'
+  strict:
+    description: 'Require exact API names and patterns. By default, functionally equivalent implementations are accepted.'
+    default: 'false'
+  concurrency:
+    description: 'Number of skills to evaluate in parallel'
+    default: '1'
   output-format:
     description: 'Output format: markdown, json, github-summary, or html'
     default: 'github-summary'
@@ -76,6 +82,8 @@ runs:
         INPUT_OUTPUT_FILE: ${{ inputs.output-file }}
         INPUT_PUBLISH_PAGES: ${{ inputs.publish-pages }}
         INPUT_VERBOSE: ${{ inputs.verbose }}
+        INPUT_STRICT: ${{ inputs.strict }}
+        INPUT_CONCURRENCY: ${{ inputs.concurrency }}
       run: |
         ARGS=(--skills-dir "$INPUT_SKILLS_DIR")
         ARGS+=(--provider "$INPUT_PROVIDER")
@@ -105,6 +113,14 @@ runs:
 
         if [ "$INPUT_VERBOSE" = "true" ]; then
           ARGS+=(--verbose)
+        fi
+
+        if [ "$INPUT_STRICT" = "true" ]; then
+          ARGS+=(--strict)
+        fi
+
+        if [ -n "$INPUT_CONCURRENCY" ] && [ "$INPUT_CONCURRENCY" != "1" ]; then
+          ARGS+=(--concurrency "$INPUT_CONCURRENCY")
         fi
 
         npx --yes "github:konradschewe/skillproof" "${ARGS[@]}"
