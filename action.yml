@@ -85,9 +85,6 @@ runs:
         INPUT_STRICT: ${{ inputs.strict }}
         INPUT_CONCURRENCY: ${{ inputs.concurrency }}
       run: |
-        ARGS=(--skills-dir "$INPUT_SKILLS_DIR")
-        ARGS+=(--provider "$INPUT_PROVIDER")
-
         OUTPUT_FORMAT="$INPUT_OUTPUT_FORMAT"
         OUTPUT_FILE="$INPUT_OUTPUT_FILE"
 
@@ -96,34 +93,25 @@ runs:
           OUTPUT_FILE="skillproof-report.html"
         fi
 
-        ARGS+=(--output-format "$OUTPUT_FORMAT")
+        [ -n "$OUTPUT_FILE" ] && echo "report-path=$OUTPUT_FILE" >> "$GITHUB_OUTPUT"
 
-        if [ -n "$OUTPUT_FILE" ]; then
-          ARGS+=(--output-file "$OUTPUT_FILE")
-          echo "report-path=$OUTPUT_FILE" >> "$GITHUB_OUTPUT"
-        fi
+        export OUTPUT_FORMAT OUTPUT_FILE
+        node -e "
+          const config = {
+            skillsDir: process.env.INPUT_SKILLS_DIR,
+            provider: process.env.INPUT_PROVIDER,
+            outputFormat: process.env.OUTPUT_FORMAT,
+            verbose: process.env.INPUT_VERBOSE === 'true',
+            strict: process.env.INPUT_STRICT === 'true',
+            concurrency: Number(process.env.INPUT_CONCURRENCY) || 1,
+          };
+          if (process.env.OUTPUT_FILE)        config.outputFile   = process.env.OUTPUT_FILE;
+          if (process.env.INPUT_FILTER)       config.filter       = process.env.INPUT_FILTER;
+          if (process.env.INPUT_SYSTEM_PROMPT) config.systemPrompt = process.env.INPUT_SYSTEM_PROMPT;
+          require('fs').writeFileSync('/tmp/skillproof-config.json', JSON.stringify(config));
+        "
 
-        if [ -n "$INPUT_FILTER" ]; then
-          ARGS+=(--filter "$INPUT_FILTER")
-        fi
-
-        if [ -n "$INPUT_SYSTEM_PROMPT" ]; then
-          ARGS+=(--system-prompt "$INPUT_SYSTEM_PROMPT")
-        fi
-
-        if [ "$INPUT_VERBOSE" = "true" ]; then
-          ARGS+=(--verbose)
-        fi
-
-        if [ "$INPUT_STRICT" = "true" ]; then
-          ARGS+=(--strict)
-        fi
-
-        if [ -n "$INPUT_CONCURRENCY" ] && [ "$INPUT_CONCURRENCY" != "1" ]; then
-          ARGS+=(--concurrency "$INPUT_CONCURRENCY")
-        fi
-
-        npx --yes "github:konradschewe/skillproof" "${ARGS[@]}"
+        npx --yes "github:konradschewe/skillproof" --config /tmp/skillproof-config.json
 
     - name: Prepare GitHub Pages directory
       if: ${{ inputs.publish-pages == 'true' }}
