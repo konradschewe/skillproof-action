@@ -61,7 +61,7 @@ jobs:
           publish-pages: true
 ```
 
-The report is published to `https://<owner>.github.io/<repo>/skillproof/skillproof-report.html`.
+The report is published to `https://<owner>.github.io/<repo>/skillproof/`.
 
 > **Note:** GitHub Pages must be enabled (Settings → Pages → Source: Deploy from branch `gh-pages`).
 

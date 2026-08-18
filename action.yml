@@ -102,7 +102,7 @@ runs:
 
         if [ "$INPUT_PUBLISH_PAGES" = "true" ] && [ -z "$OUTPUT_FILE" ]; then
           OUTPUT_FORMAT="html"
-          OUTPUT_FILE="skillproof-report.html"
+          OUTPUT_FILE="index.html"
         fi
 
         [ -n "$OUTPUT_FILE" ] && echo "report-path=$OUTPUT_FILE" >> "$GITHUB_OUTPUT"
@@ -133,7 +133,7 @@ runs:
         REPORT_PATH: ${{ steps.run.outputs.report-path }}
       run: |
         mkdir -p _skillproof_pages_tmp
-        cp "$REPORT_PATH" _skillproof_pages_tmp/skillproof-report.html
+        cp "$REPORT_PATH" _skillproof_pages_tmp/index.html
 
     - name: Publish to GitHub Pages
       if: ${{ inputs.publish-pages == 'true' }}
