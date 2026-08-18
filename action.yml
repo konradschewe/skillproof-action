@@ -52,6 +52,9 @@ inputs:
   pages-destination-dir:
     description: 'Subdirectory on GitHub Pages to publish the report to'
     default: 'skillproof'
+  cache-dir:
+    description: 'Directory to store the evaluation cache. Persisted across runs via actions/cache.'
+    default: '.skillproof-cache'
 
 outputs:
   report-path:
@@ -65,6 +68,14 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+
+    - name: Restore Skillproof cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.cache-dir }}
+        key: skillproof-v1-${{ runner.os }}-${{ github.sha }}
+        restore-keys: |
+          skillproof-v1-${{ runner.os }}-
 
     - name: Run Skillproof
       id: run
@@ -84,6 +95,7 @@ runs:
         INPUT_VERBOSE: ${{ inputs.verbose }}
         INPUT_STRICT: ${{ inputs.strict }}
         INPUT_CONCURRENCY: ${{ inputs.concurrency }}
+        INPUT_CACHE_DIR: ${{ inputs.cache-dir }}
       run: |
         OUTPUT_FORMAT="$INPUT_OUTPUT_FORMAT"
         OUTPUT_FILE="$INPUT_OUTPUT_FILE"
@@ -108,6 +120,7 @@ runs:
           if (process.env.OUTPUT_FILE)        config.outputFile   = process.env.OUTPUT_FILE;
           if (process.env.INPUT_FILTER)       config.filter       = process.env.INPUT_FILTER;
           if (process.env.INPUT_SYSTEM_PROMPT) config.systemPrompt = process.env.INPUT_SYSTEM_PROMPT;
+          if (process.env.INPUT_CACHE_DIR)    config.cacheDir     = process.env.INPUT_CACHE_DIR;
           require('fs').writeFileSync('/tmp/skillproof-config.json', JSON.stringify(config));
         "
 
