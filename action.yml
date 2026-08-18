@@ -109,18 +109,21 @@ runs:
 
         export OUTPUT_FORMAT OUTPUT_FILE
         node -e "
+          const path = require('path');
+          const ws = process.env.GITHUB_WORKSPACE || process.cwd();
+          const abs = (p) => p && (path.isAbsolute(p) ? p : path.resolve(ws, p));
           const config = {
-            skillsDir: process.env.INPUT_SKILLS_DIR,
+            skillsDir: abs(process.env.INPUT_SKILLS_DIR),
             provider: process.env.INPUT_PROVIDER,
             outputFormat: process.env.OUTPUT_FORMAT,
             verbose: process.env.INPUT_VERBOSE === 'true',
             strict: process.env.INPUT_STRICT === 'true',
             concurrency: Number(process.env.INPUT_CONCURRENCY) || 1,
           };
-          if (process.env.OUTPUT_FILE)        config.outputFile   = process.env.OUTPUT_FILE;
+          if (process.env.OUTPUT_FILE)        config.outputFile   = abs(process.env.OUTPUT_FILE);
           if (process.env.INPUT_FILTER)       config.filter       = process.env.INPUT_FILTER;
           if (process.env.INPUT_SYSTEM_PROMPT) config.systemPrompt = process.env.INPUT_SYSTEM_PROMPT;
-          if (process.env.INPUT_CACHE_DIR)    config.cacheDir     = process.env.INPUT_CACHE_DIR;
+          if (process.env.INPUT_CACHE_DIR)    config.cacheDir     = abs(process.env.INPUT_CACHE_DIR);
           require('fs').writeFileSync('/tmp/skillproof-config.json', JSON.stringify(config));
         "
 
