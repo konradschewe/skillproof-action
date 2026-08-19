@@ -130,13 +130,14 @@ runs:
         npx --yes "@skillproof/cli@1" --config /tmp/skillproof-config.json
 
     - name: Prepare GitHub Pages directory
-      if: ${{ inputs.publish-pages == 'true' }}
+      id: prepare-pages
+      if: ${{ steps.run.outputs.report-path != '' }}
       shell: bash
       env:
         REPORT_PATH: ${{ steps.run.outputs.report-path }}
       run: |
-        mkdir -p _skillproof_pages_tmp
-        cp "$REPORT_PATH" _skillproof_pages_tmp/index.html
+        mkdir -p _skillproof_pages_tmp/${{ inputs.pages-destination-dir }}
+        cp "$REPORT_PATH" _skillproof_pages_tmp/${{ inputs.pages-destination-dir }}/index.html
 
     - name: Publish to GitHub Pages
       if: ${{ inputs.publish-pages == 'true' }}
@@ -144,5 +145,11 @@ runs:
       with:
         github_token: ${{ github.token }}
         publish_dir: '_skillproof_pages_tmp'
-        destination_dir: ${{ inputs.pages-destination-dir }}
         keep_files: true
+
+    - name: Upload Pages artifact
+      id: upload-pages
+      if: ${{ steps.run.outputs.report-path != '' }}
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: '_skillproof_pages_tmp'
