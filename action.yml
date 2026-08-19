@@ -1,5 +1,5 @@
 name: 'Skillproof: Evaluate Skill Adoption'
-description: 'Verify that Claude agent skills are correctly adopted in your codebase'
+description: 'Verify that code agent skills are correctly adopted in your codebase'
 author: 'konradschewe'
 
 branding:
