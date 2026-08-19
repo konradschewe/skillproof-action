@@ -127,7 +127,7 @@ runs:
           require('fs').writeFileSync('/tmp/skillproof-config.json', JSON.stringify(config));
         "
 
-        npx --yes "@skillproof/cli" --config /tmp/skillproof-config.json
+        npx --yes "@skillproof/cli@1" --config /tmp/skillproof-config.json
 
     - name: Prepare GitHub Pages directory
       if: ${{ inputs.publish-pages == 'true' }}
