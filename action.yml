@@ -105,6 +105,10 @@ runs:
           OUTPUT_FILE="index.html"
         fi
 
+        if [ "$OUTPUT_FORMAT" = "html" ] && [ -z "$OUTPUT_FILE" ]; then
+          OUTPUT_FILE="skillproof-report.html"
+        fi
+
         [ -n "$OUTPUT_FILE" ] && echo "report-path=$OUTPUT_FILE" >> "$GITHUB_OUTPUT"
 
         export OUTPUT_FORMAT OUTPUT_FILE
