@@ -55,6 +55,15 @@ inputs:
   cache-dir:
     description: 'Directory to store the evaluation cache. Persisted across runs via actions/cache.'
     default: '.skillproof-cache'
+  hub-repo:
+    description: >
+      Push the evaluation result to this hub repository (e.g. "org/skillproof-hub").
+      Results are written to results/{slug}/runs/{timestamp}-{sha}.json as append-only run files.
+      Requires hub-token with contents:write on the hub repo.
+    required: false
+  hub-token:
+    description: 'GitHub token with contents:write on the hub-repo (e.g. a PAT or fine-grained token)'
+    required: false
 
 outputs:
   report-path:
@@ -96,6 +105,7 @@ runs:
         INPUT_STRICT: ${{ inputs.strict }}
         INPUT_CONCURRENCY: ${{ inputs.concurrency }}
         INPUT_CACHE_DIR: ${{ inputs.cache-dir }}
+        INPUT_HUB_REPO: ${{ inputs.hub-repo }}
       run: |
         OUTPUT_FORMAT="$INPUT_OUTPUT_FORMAT"
         OUTPUT_FILE="$INPUT_OUTPUT_FILE"
@@ -119,19 +129,48 @@ runs:
           const config = {
             skillsDir: abs(process.env.INPUT_SKILLS_DIR),
             provider: process.env.INPUT_PROVIDER,
-            outputFormat: process.env.OUTPUT_FORMAT,
             verbose: process.env.INPUT_VERBOSE === 'true',
             strict: process.env.INPUT_STRICT === 'true',
             concurrency: Number(process.env.INPUT_CONCURRENCY) || 1,
           };
-          if (process.env.OUTPUT_FILE)        config.outputFile   = abs(process.env.OUTPUT_FILE);
-          if (process.env.INPUT_FILTER)       config.filter       = process.env.INPUT_FILTER;
+          if (process.env.INPUT_HUB_REPO) {
+            config.outputFormat = [process.env.OUTPUT_FORMAT, 'json'];
+            config.outputFile   = [abs(process.env.OUTPUT_FILE) || undefined, '/tmp/skillproof-hub-report.json'];
+          } else {
+            config.outputFormat = process.env.OUTPUT_FORMAT;
+            if (process.env.OUTPUT_FILE) config.outputFile = abs(process.env.OUTPUT_FILE);
+          }
+          if (process.env.INPUT_FILTER)        config.filter       = process.env.INPUT_FILTER;
           if (process.env.INPUT_SYSTEM_PROMPT) config.systemPrompt = process.env.INPUT_SYSTEM_PROMPT;
-          if (process.env.INPUT_CACHE_DIR)    config.cacheDir     = abs(process.env.INPUT_CACHE_DIR);
+          if (process.env.INPUT_CACHE_DIR)     config.cacheDir     = abs(process.env.INPUT_CACHE_DIR);
           require('fs').writeFileSync('/tmp/skillproof-config.json', JSON.stringify(config));
         "
 
         npx --yes "@skillproof/cli@1" --config /tmp/skillproof-config.json
+
+    - name: Push result to hub
+      if: ${{ inputs.hub-repo != '' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.hub-token }}
+        INPUT_HUB_REPO: ${{ inputs.hub-repo }}
+      run: |
+        SLUG=$(echo "$GITHUB_REPOSITORY" | sed 's|/|--|')
+        TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
+        TARGET_PATH="results/${SLUG}/runs/${TIMESTAMP}-${GITHUB_SHA}.json"
+
+        jq --arg repo    "$GITHUB_REPOSITORY" \
+           --arg repoUrl "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+           --arg sha     "$GITHUB_SHA" \
+           --arg ref     "$GITHUB_REF" \
+           '{repo: $repo, repoUrl: $repoUrl, sha: $sha, ref: $ref, report: .}' \
+           /tmp/skillproof-hub-report.json > /tmp/skillproof-hub-run.json
+
+        CONTENT=$(base64 -w0 /tmp/skillproof-hub-run.json)
+        gh api "repos/${INPUT_HUB_REPO}/contents/${TARGET_PATH}" \
+          --method PUT \
+          -f message="chore: skillproof run ${GITHUB_SHA:0:7} (${GITHUB_REPOSITORY})" \
+          -f content="$CONTENT"
 
     - name: Prepare GitHub Pages directory
       id: prepare-pages
